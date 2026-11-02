@@ -1,6 +1,6 @@
 import requests
 
-url = 'http://localhost:9696/predict'
+url = 'https://churn-prediction-agent.onrender.com/predict'
 
 customer = {
     "gender": "female",

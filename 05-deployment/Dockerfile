@@ -2,6 +2,8 @@ FROM python:3.14-slim
 
 WORKDIR /app
 
+RUN pip install pipenv
+RUN pipenv install --system --deploy
 RUN pip install flask gunicorn
 RUN pip install flask gunicorn scikit-learn
 
