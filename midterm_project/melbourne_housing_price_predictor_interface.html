@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Melbourne Housing Price Predictor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .glass-panel {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-input {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .glass-input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+    .glow-effect {
+      animation: pulse-glow 4s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+  <!-- Background Decorative Blurs -->
+  <div class="fixed top-0 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none glow-effect"></div>
+  <div class="fixed bottom-10 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none glow-effect"></div>
+
+  <!-- Header & Navbar -->
+  <header class="border-b border-slate-800/80 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-white leading-tight">Melbourne House Predictor</h1>
+          <p class="text-xs text-slate-400">ML Zoomcamp Midterm Project</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          XGBoost Tuned
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow">
+    
+    <!-- Hero / Title -->
+    <div class="mb-8 text-center sm:text-left">
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+        Estimate Real Estate Value
+      </h2>
+      <p class="mt-2 text-slate-400 text-sm sm:text-base max-w-2xl">
+        Fill in the property details below to get an instant price estimation powered by a trained XGBoost ML Regressor.
+      </p>
+    </div>
+
+    <!-- Presets Bar -->
+    <div class="mb-8 p-4 glass-panel rounded-2xl flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-2 text-sm text-slate-300 font-medium">
+        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Quick Preset Inputs:
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="loadPreset('default')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+          Default Standard House
+        </button>
+        <button type="button" onclick="loadPreset('luxury')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-800/60 transition">
+          Luxury Villa (Yarra)
+        </button>
+        <button type="button" onclick="loadPreset('apartment')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-950 hover:bg-purple-900 text-purple-300 border border-purple-800/60 transition">
+          Compact City Unit
+        </button>
+      </div>
+    </div>
+
+    <!-- Layout Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+      <!-- Left Column: Input Form (7 Cols) -->
+      <form id="predictionForm" onsubmit="handlePredict(event)" class="lg:col-span-7 glass-panel p-6 sm:p-8 rounded-3xl space-y-6">
+        
+        <!-- Section: Property Specifications -->
+        <div>
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-indigo-400 mb-4 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m3 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z"/>
+            </svg>
+            1. Basic Property Details
+          </h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- Rooms -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Rooms Count</label>
+              <input type="number" id="rooms" value="3" min="1" max="15" required class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none">
+            </div>
+
+            <!-- Property Type -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Property Type</label>
+              <select id="type" class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none bg-slate-900">
+                <option value="h">House / Villa (h)</option>
+                <option value="u">Unit / Duplex (u)</option>
+                <option value="t">Townhouse (t)</option>
+              </select>
+            </div>
+
+            <!-- Distance -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">CBD Distance (km)</label>
+              <input type="number" id="distance" step="0.1" value="10.5" required class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none">
+            </div>
+
+            <!-- Bathrooms -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Bathrooms</label>
+              <input type="number" id="bathroom" value="2" min="0" max="10" required class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none">
+            </div>
+
+            <!-- Car Spaces -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Car Spaces</label>
+              <input type="number" id="car" value="1" min="0" max="10" required class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none">
+            </div>
+
+            <!-- Year Built -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Year Built</label>
+              <input type="number" id="yearbuilt" value="1975" min="1800" max="2026" required class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Land & Spatial Area -->
+        <div class="pt-4 border-t border-slate-800">
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-indigo-400 mb-4 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-2V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+            </svg>
+            2. Area & Spatial Dimensions
+          </h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Landsize -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Land Size (m²)</label>
+              <input type="number" id="landsize" value="450" min="0" required class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none">
+            </div>
+
+            <!-- Building Area -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Building Area (m²)</label>
+              <input type="number" id="buildingarea" value="125" min="0" required class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Geographic Location -->
+        <div class="pt-4 border-t border-slate-800">
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-indigo-400 mb-4 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            3. Location & Geography
+          </h3>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Council Area -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Council Area</label>
+              <input type="text" id="councilarea" value="Yarra" required class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none">
+            </div>
+
+            <!-- Property Count -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Suburb Property Count</label>
+              <input type="number" id="propertycount" value="4000" required class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none">
+            </div>
+
+            <!-- Latitude -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Latitude</label>
+              <input type="number" id="lattitude" step="0.0001" value="-37.8000" required class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none">
+            </div>
+
+            <!-- Longitude -->
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Longitude</label>
+              <input type="number" id="longtitude" step="0.0001" value="144.9000" required class="w-full glass-input px-3 py-2.5 rounded-xl text-white text-sm focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-4">
+          <button type="submit" id="submitBtn" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-base shadow-lg shadow-indigo-600/30 transition transform active:scale-[0.99] flex items-center justify-center gap-2">
+            <span>Predict House Price</span>
+            <svg class="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+          </button>
+        </div>
+
+      </form>
+
+      <!-- Right Column: Results & Configuration (5 Cols) -->
+      <div class="lg:col-span-5 space-y-6 sticky top-24">
+
+        <!-- Result Display Card -->
+        <div class="glass-panel p-6 sm:p-8 rounded-3xl relative overflow-hidden">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Prediction Result</span>
+            <span id="statusBadge" class="text-xs px-2.5 py-1 rounded-full font-medium bg-slate-800 text-slate-400 border border-slate-700">
+              Ready
+            </span>
+          </div>
+
+          <!-- Price Display -->
+          <div id="priceDisplay" class="my-6 text-center py-6 px-4 rounded-2xl bg-slate-900/80 border border-slate-800">
+            <p class="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-1">Estimated Market Value</p>
+            <div id="priceValue" class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              $0.00
+            </div>
+            <p id="logPriceText" class="text-xs text-indigo-400 mt-2 font-mono hidden">
+              Log Value: <span id="logVal">-</span>
+            </p>
+          </div>
+
+          <!-- Loading Indicator -->
+          <div id="loadingState" class="hidden py-8 text-center space-y-4">
+            <div class="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mx-auto"></div>
+            <div>
+              <p class="text-sm font-semibold text-white">Evaluating XGBoost Model...</p>
+              <p id="coldStartTip" class="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                If server was idle, Render cold start may take ~30-40s to wake up container...
+              </p>
+            </div>
+          </div>
+
+          <!-- Error Alert State -->
+          <div id="errorState" class="hidden p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs leading-relaxed space-y-2">
+            <div class="flex items-center gap-2 font-semibold text-rose-400">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <span>API Request Failed</span>
+            </div>
+            <p id="errorMessageText">Could not connect to the API endpoint.</p>
+            <div class="pt-2 border-t border-rose-500/20 text-[11px] text-slate-400">
+              💡 <strong>Tip:</strong> If testing local Flask server, ensure CORS is allowed or test using local container.
+            </div>
+          </div>
+
+        </div>
+
+        <!-- API Endpoint Configuration Card -->
+        <div class="glass-panel p-6 rounded-3xl space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/>
+              </svg>
+              Target API Endpoint
+            </label>
+            <span class="text-[10px] text-slate-500 uppercase font-bold">Config</span>
+          </div>
+
+          <input type="url" id="apiUrl" value="https://melbourne-housing-predict.onrender.com/predict" required class="w-full glass-input px-3 py-2 rounded-xl text-slate-200 text-xs font-mono focus:outline-none">
+
+          <div class="flex gap-2 text-[11px]">
+            <button type="button" onclick="setApi('https://melbourne-housing-predict.onrender.com/predict')" class="text-indigo-400 hover:underline">
+              Set Live Render URL
+            </button>
+            <span class="text-slate-600">|</span>
+            <button type="button" onclick="setApi('http://localhost:9696/predict')" class="text-slate-400 hover:underline">
+              Set Localhost
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 bg-slate-950/80 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4">
+      Melbourne Housing ML Project • Powered by XGBoost, Flask & Docker
+    </div>
+  </footer>
+
+  <!-- Script Handlers -->
+  <script>
+    const presets = {
+      default: {
+        rooms: 3, type: "h", distance: 10.5, bathroom: 2, car: 1,
+        landsize: 450, buildingarea: 125, yearbuilt: 1975,
+        councilarea: "Yarra", lattitude: -37.8000, longtitude: 144.9000, propertycount: 4000
+      },
+      luxury: {
+        rooms: 5, type: "h", distance: 4.2, bathroom: 4, car: 3,
+        landsize: 850, buildingarea: 360, yearbuilt: 2018,
+        councilarea: "Yarra", lattitude: -37.8100, longtitude: 144.9800, propertycount: 6500
+      },
+      apartment: {
+        rooms: 2, type: "u", distance: 2.5, bathroom: 1, car: 1,
+        landsize: 0, buildingarea: 75, yearbuilt: 2012,
+        councilarea: "Melbourne", lattitude: -37.8150, longtitude: 144.9650, propertycount: 14000
+      }
+    };
+
+    function loadPreset(key) {
+      const data = presets[key];
+      if (!data) return;
+      Object.keys(data).forEach(fieldId => {
+        const input = document.getElementById(fieldId);
+        if (input) input.value = data[fieldId];
+      });
+    }
+
+    function setApi(url) {
+      document.getElementById('apiUrl').value = url;
+    }
+
+    async function handlePredict(event) {
+      event.preventDefault();
+
+      const apiUrl = document.getElementById('apiUrl').value.trim();
+      const priceValue = document.getElementById('priceValue');
+      const logPriceText = document.getElementById('logPriceText');
+      const logVal = document.getElementById('logVal');
+      const loadingState = document.getElementById('loadingState');
+      const errorState = document.getElementById('errorState');
+      const errorMessageText = document.getElementById('errorMessageText');
+      const statusBadge = document.getElementById('statusBadge');
+      const submitBtn = document.getElementById('submitBtn');
+
+      // Prepare payload
+      const payload = {
+        rooms: Number(document.getElementById('rooms').value),
+        type: document.getElementById('type').value,
+        distance: Number(document.getElementById('distance').value),
+        bathroom: Number(document.getElementById('bathroom').value),
+        car: Number(document.getElementById('car').value),
+        landsize: Number(document.getElementById('landsize').value),
+        buildingarea: Number(document.getElementById('buildingarea').value),
+        yearbuilt: Number(document.getElementById('yearbuilt').value),
+        councilarea: document.getElementById('councilarea').value,
+        lattitude: Number(document.getElementById('lattitude').value),
+        longtitude: Number(document.getElementById('longtitude').value),
+        propertycount: Number(document.getElementById('propertycount').value)
+      };
+
+      // Reset states
+      errorState.classList.add('hidden');
+      loadingState.classList.remove('hidden');
+      priceValue.innerText = "$ ...";
+      logPriceText.classList.add('hidden');
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+
+      statusBadge.innerText = "Evaluating";
+      statusBadge.className = "text-xs px-2.5 py-1 rounded-full font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20";
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.predicted_price_usd !== undefined) {
+          const formatted = new Intl.NumberFormat('en-AU', {
+            style: 'currency',
+            currency: 'AUD',
+            maximumFractionDigits: 2
+          }).format(result.predicted_price_usd);
+
+          priceValue.innerText = formatted;
+          if (result.log_price) {
+            logVal.innerText = result.log_price;
+            logPriceText.classList.remove('hidden');
+          }
+
+          statusBadge.innerText = "Success 200";
+          statusBadge.className = "text-xs px-2.5 py-1 rounded-full font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+        } else {
+          throw new Error("Invalid response JSON structure");
+        }
+
+      } catch (err) {
+        console.error("Prediction request error:", err);
+        errorMessageText.innerText = err.message || "Failed to fetch model prediction.";
+        errorState.classList.remove('hidden');
+        priceValue.innerText = "$ --";
+        
+        statusBadge.innerText = "Error";
+        statusBadge.className = "text-xs px-2.5 py-1 rounded-full font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20";
+      } finally {
+        loadingState.classList.add('hidden');
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+      }
+    }
+  </script>
+</body>
+</html>

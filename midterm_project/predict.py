@@ -1,11 +1,13 @@
 import pickle as pkl
 import numpy as np
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 with open("xgb_model.bin", "rb") as file:
     dv, model = pkl.load(file)
     
 app = Flask("melbourne_housing_prediction")
+CORS(app)
 
 def preprocess_features(house: dict) -> dict:
     """Preprocesses input feature dictionary for single prediction."""

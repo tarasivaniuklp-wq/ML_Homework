@@ -1,6 +1,6 @@
 import requests
 
-url = "http://localhost:9696/predict"
+url = "https://melbourne-housing-predict.onrender.com/predict"
 
 sample_house = {
     "rooms": 3,

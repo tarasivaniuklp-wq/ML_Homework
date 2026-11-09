@@ -11,6 +11,7 @@ scikit-learn = "*"
 xgboost = "*"
 requests = "*"
 pandas = "*"
+flask-cors = "*"
 
 [dev-packages]
 
