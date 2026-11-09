@@ -46,7 +46,7 @@ The dataset used is the **Melbourne Housing Snapshot** (`melb_data.csv`).
 ### Testing via cURL
 
 ```bash
-curl -X POST [https://melbourne-housing-predict.onrender.com/predict](https://melbourne-housing-predict.onrender.com/predict) \
+curl -X POST https://melbourne-housing-predict.onrender.com/predict \
   -H "Content-Type: application/json" \
   -d '{
     "rooms": 3,
